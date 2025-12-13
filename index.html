@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Futuristic Flowchart Match</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --neon-blue: #00f3ff;
+      --neon-green: #00ff41;
+      --neon-red: #ff0040;
+      --neon-purple: #c724fe;
+      --glass-bg: rgba(10, 25, 47, 0.85);
+      --glass-border: rgba(0, 243, 255, 0.3);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 50% -20%, #003366, #000000);
+      color: var(--neon-blue);
+      font-family: 'Orbitron', sans-serif;
+      padding: 20px;
+      padding-bottom: 100px; 
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Corner Glow Effect */
+    .corner-glow {
+      position: fixed;
+      width: 200px;
+      height: 200px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 9999;
+    }
+
+    .corner-glow.show {
+      opacity: 1;
+    }
+
+    .corner-glow.top-left {
+      top: 0;
+      left: 0;
+      background: radial-gradient(circle at top left, var(--neon-red) 0%, transparent 70%);
+    }
+
+    .corner-glow.top-right {
+      top: 0;
+      right: 0;
+      background: radial-gradient(circle at top right, var(--neon-red) 0%, transparent 70%);
+    }
+
+    .corner-glow.bottom-left {
+      bottom: 0;
+      left: 0;
+      background: radial-gradient(circle at bottom left, var(--neon-red) 0%, transparent 70%);
+    }
+
+    .corner-glow.bottom-right {
+      bottom: 0;
+      right: 0;
+      background: radial-gradient(circle at bottom right, var(--neon-red) 0%, transparent 70%);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    /* Header with stats */
+    .header-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 20px;
+      padding: 0 10px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .stats-box {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 15px 25px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+    }
+
+    .stats-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stats-label {
+      color: #aaddff;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stats-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      text-shadow: 0 0 10px currentColor;
+    }
+
+    .lives {
+      color: var(--neon-red);
+    }
+
+    .timer {
+      color: var(--neon-green);
+    }
+
+    .attempts {
+      color: var(--neon-purple);
+    }
+
+    .score {
+      color: #ff8c00;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 3rem;
+      margin: 10px 0;
+      text-transform: uppercase;
+      letter-spacing: 6px;
+      text-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
+    }
+
+    p.subtitle {
+      text-align: center;
+      font-size: 1.2rem;
+      margin-bottom: 40px;
+      color: #aaddff;
+      text-shadow: 0 0 5px var(--neon-blue);
+    }
+
+    /* Mute Button */
+    .mute-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 50%;
+      padding: 12px;
+      color: var(--neon-blue);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+      z-index: 100;
+    }
+
+    .mute-btn:hover {
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+      transform: scale(1.1);
+    }
+
+    .mute-btn .speaker-off {
+      display: none;
+    }
+
+    .mute-btn.muted .speaker-on {
+      display: none;
+    }
+
+    .mute-btn.muted .speaker-off {
+      display: block;
+    }
+
+    .mute-btn.muted {
+      color: #666;
+    }
+
+    /* Game Layout */
+    .game-board {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      justify-content: center;
+      width: 100%;
+    }
+
+    /* Grid for shapes */
+    .shapes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 30px;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 15px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+      transition: transform 0.3s, box-shadow 0.3s;
+      position: relative;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0 25px rgba(0, 243, 255, 0.4);
+    }
+
+    /* SVG Styling */
+    svg {
+      width: 100%;
+      height: 120px;
+      filter: drop-shadow(0 0 5px var(--neon-blue));
+      margin-bottom: 15px;
+    }
+
+    .neon-stroke {
+      fill: none;
+      stroke: var(--neon-blue);
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Drop Zone Styling */
+    .dropzone {
+      width: 100%;
+      min-height: 60px;
+      border: 2px dashed rgba(0, 243, 255, 0.5);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      background: rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    .dropzone.drag-over {
+      background: rgba(0, 243, 255, 0.2);
+      border-color: #fff;
+      transform: scale(1.02);
+    }
+
+    .dropzone:empty::before {
+      content: "DROP NAME HERE";
+      font-size: 0.8rem;
+      color: rgba(0, 243, 255, 0.5);
+      letter-spacing: 1px;
+    }
+
+    /* Draggable Names Pool */
+    #names-pool {
+      margin-top: 50px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      padding: 30px;
+      background: rgba(0, 10, 20, 0.8);
+      border: 1px solid var(--neon-blue);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 900px;
+      min-height: 120px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+    }
+
+    .draggable {
+      background: rgba(0, 243, 255, 0.15);
+      color: #fff;
+      border: 1px solid var(--neon-blue);
+      padding: 12px 24px;
+      border-radius: 30px;
+      cursor: grab;
+      font-weight: 600;
+      font-size: 1rem;
+      user-select: none;
+      transition: all 0.2s;
+      text-shadow: 0 0 5px var(--neon-blue);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+      z-index: 100;
+    }
+
+    .draggable:hover {
+      background: var(--neon-blue);
+      color: #000;
+      box-shadow: 0 0 20px var(--neon-blue);
+      transform: scale(1.05);
+    }
+
+    .draggable:active {
+      cursor: grabbing;
+    }
+
+    .draggable.placed {
+      cursor: pointer;
+    }
+
+    .draggable.placed:hover {
+      background: rgba(255, 0, 64, 0.3);
+      border-color: var(--neon-red);
+    }
+
+    /* Reset Button */
+    .reset-btn {
+      margin-top: 40px;
+      padding: 15px 50px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--neon-blue);
+      background: transparent;
+      border: 2px solid var(--neon-blue);
+      border-radius: 5px;
+      cursor: pointer;
+      transition: 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .reset-btn:hover {
+      background: var(--neon-blue);
+      color: #000;
+      box-shadow: 0 0 30px var(--neon-blue);
+    }
+
+    /* Success Message */
+    #success-msg {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: rgba(0, 0, 0, 0.95);
+      border: 4px solid var(--neon-green);
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      z-index: 999;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: none;
+      width: 90%;
+      max-width: 500px;
+    }
+
+    #success-msg.show {
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: all;
+    }
+
+    #success-msg h2 {
+      color: var(--neon-green);
+      font-size: 2.5rem;
+      margin: 0 0 20px 0;
+      text-shadow: 0 0 20px var(--neon-green);
+    }
+
+    #success-msg p {
+      color: white;
+      font-size: 1.2rem;
+      margin-bottom: 30px;
+    }
+
+    #success-msg button {
+      padding: 15px 40px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--neon-green);
+      background: transparent;
+      border: 2px solid var(--neon-green);
+      border-radius: 5px;
+      cursor: pointer;
+      transition: 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin: 10px;
+    }
+
+    #success-msg button:hover {
+      background: var(--neon-green);
+      color: #000;
+      box-shadow: 0 0 30px var(--neon-green);
+    }
+
+    /* Failure Message */
+    #failure-msg {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: rgba(0, 0, 0, 0.95);
+      border: 4px solid var(--neon-red);
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      z-index: 999;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      width: 90%;
+      max-width: 500px;
+    }
+
+    #failure-msg.show {
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: all;
+    }
+
+    #failure-msg h2 {
+      color: var(--neon-red);
+      font-size: 2.5rem;
+      margin: 0 0 20px 0;
+      text-shadow: 0 0 20px var(--neon-red);
+    }
+
+    #failure-msg p {
+      color: white;
+      font-size: 1.2rem;
+      margin-bottom: 30px;
+    }
+
+    #failure-msg button {
+      padding: 15px 40px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--neon-red);
+      background: transparent;
+      border: 2px solid var(--neon-red);
+      border-radius: 5px;
+      cursor: pointer;
+      transition: 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin: 10px;
+    }
+
+    #failure-msg button:hover {
+      background: var(--neon-red);
+      color: #000;
+      box-shadow: 0 0 30px var(--neon-red);
+    }
+
+    /* Timer warning animation */
+    @keyframes pulseWarning {
+      0% { text-shadow: 0 0 10px var(--neon-green); }
+      50% { text-shadow: 0 0 20px var(--neon-red), 0 0 30px var(--neon-red); }
+      100% { text-shadow: 0 0 10px var(--neon-green); }
+    }
+
+    .timer.warning {
+      animation: pulseWarning 1s infinite;
+      color: var(--neon-red);
+    }
+
+    /* Lives hearts */
+    .heart {
+      color: var(--neon-red);
+      font-size: 1.4rem;
+      margin: 0 2px;
+      text-shadow: 0 0 10px var(--neon-red);
+    }
+
+    .heart.lost {
+      color: #444;
+      text-shadow: none;
+    }
+
+    /* Progress Bar */
+    .progress-bar {
+      width: 100%;
+      max-width: 600px;
+      height: 10px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+      margin: 20px 0;
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+      border-radius: 10px;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px var(--neon-blue);
+    }
+
+    .phase-indicator {
+      text-align: center;
+      margin: 10px 0;
+      color: #aaddff;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .next-phase-btn {
+      background: linear-gradient(45deg, var(--neon-purple), var(--neon-blue));
+      color: #000;
+      border: none;
+      padding: 15px 40px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin: 10px;
+      box-shadow: 0 0 20px rgba(199, 36, 254, 0.5);
+    }
+
+    .next-phase-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 30px rgba(199, 36, 254, 0.8);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Corner Glow Elements -->
+  <div class="corner-glow top-left"></div>
+  <div class="corner-glow top-right"></div>
+  <div class="corner-glow bottom-left"></div>
+  <div class="corner-glow bottom-right"></div>
+
+  <div class="container">
+    <header>
+      <div class="header-stats">
+        <div class="stats-box">
+          <div class="stats-item">
+            <span class="stats-label">Lives:</span>
+            <span class="stats-value lives" id="lives-counter">3</span>
+            <div id="hearts-container">
+              <span class="heart">♥</span>
+              <span class="heart">♥</span>
+              <span class="heart">♥</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-box">
+          <div class="stats-item">
+            <span class="stats-label">Timer:</span>
+            <span class="stats-value timer" id="timer">60</span>
+          </div>
+        </div>
+
+        <div class="stats-box">
+          <div class="stats-item">
+            <span class="stats-label">Score:</span>
+            <span class="stats-value score" id="score-counter">0</span>
+          </div>
+        </div>
+
+        <div class="stats-box">
+          <div class="stats-item">
+            <span class="stats-label">Attempts:</span>
+            <span class="stats-value attempts" id="attempts-counter">0</span>
+          </div>
+        </div>
+      </div>
+
+      <h1>Flowchart Core</h1>
+      <p class="subtitle">Initialize System: Match Protocols</p>
+      <div class="phase-indicator">Phase 1 of 2</div>
+      
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
+
+      <button id="muteBtn" class="mute-btn" aria-label="Toggle sound">
+        <svg class="speaker-on" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+          <path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z" />
+        </svg>
+        <svg class="speaker-off" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+          <path d="M12,4L9.91,6.09L12,8.18M4.27,3L3,4.27L7.73,9H3V15H7L12,20V13.27L16.25,17.53C15.58,18.04 14.83,18.46 14,18.7V20.77C15.38,20.45 16.63,19.82 17.68,18.96L19.73,21L21,19.73L12,10.73M19,12C19,12.94 18.8,13.82 18.46,14.64L19.97,16.15C20.62,15.29 21,14.22 21,13V11C21,7.9 19.4,5.17 16.71,3.68L18.12,5.09C19.88,6.64 21,8.77 21,11H19M16.5,12C16.5,10.23 15.5,8.71 14,7.97V5.29C16.89,6.15 19,8.83 19,12H16.5M14,3.23V1.11L19.5,6.61C18.08,5.09 16.13,4.06 14,3.23Z" />
+        </svg>
+      </button>
+    </header>
+
+    <div class="game-board">
+      
+      <div class="shapes-grid">
+        
+        <div class="card">
+          <svg viewBox="0 0 200 100">
+            <rect x="10" y="20" width="180" height="60" rx="30" ry="30" class="neon-stroke" />
+          </svg>
+          <div class="dropzone" data-target="Terminator"></div>
+        </div>
+
+        <div class="card">
+          <svg viewBox="0 0 200 100">
+            <polygon points="40,20 190,20 160,80 10,80" class="neon-stroke" />
+          </svg>
+          <div class="dropzone" data-target="Process Box"></div>
+        </div>
+
+        <div class="card">
+          <svg viewBox="0 0 200 100">
+            <polygon points="100,10 190,50 100,90 10,50" class="neon-stroke" />
+          </svg>
+          <div class="dropzone" data-target="Decision Box"></div>
+        </div>
+
+        <div class="card">
+          <svg viewBox="0 0 200 100">
+            <circle cx="100" cy="50" r="35" class="neon-stroke" />
+          </svg>
+          <div class="dropzone" data-target="Connector"></div>
+        </div>
+
+        <div class="card">
+          <svg viewBox="0 0 200 100">
+            <defs>
+              <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="#00f3ff" />
+              </marker>
+            </defs>
+            <line x1="20" y1="30" x2="170" y2="30" class="neon-stroke" marker-end="url(#arrowhead)" />
+            <path d="M20,70 Q90,90 170,70" class="neon-stroke" fill="none" marker-end="url(#arrowhead)" />
+          </svg>
+          <div class="dropzone" data-target="Flow Lines"></div>
+        </div>
+
+        <div class="card">
+          <svg viewBox="0 0 200 100">
+            <g class="neon-stroke">
+              <rect x="10" y="20" width="180" height="60" />
+              <line x1="40" y1="20" x2="40" y2="80" />
+              <line x1="160" y1="20" x2="160" y2="80" />
+            </g>
+          </svg>
+          <div class="dropzone" data-target="Function"></div>
+        </div>
+
+      </div>
+
+      <div id="names-pool">
+        <div class="draggable" draggable="true" id="name-1" data-name="Terminator">Terminator</div>
+        <div class="draggable" draggable="true" id="name-2" data-name="Process Box">Process Box</div>
+        <div class="draggable" draggable="true" id="name-3" data-name="Decision Box">Decision Box</div>
+        <div class="draggable" draggable="true" id="name-4" data-name="Connector">Connector</div>
+        <div class="draggable" draggable="true" id="name-5" data-name="Flow Lines">Flow Lines</div>
+        <div class="draggable" draggable="true" id="name-6" data-name="Function">Function</div>
+      </div>
+
+    </div>
+
+    <button class="reset-btn" onclick="checkAnswers()">Reboot System</button>
+  </div>
+
+  <!-- Success Message -->
+  <div id="success-msg">
+    <h2>SYSTEM ONLINE</h2>
+    <p>All protocols matched successfully!</p>
+    <p>Time: <span id="final-time">0</span> seconds</p>
+    <p>Attempts: <span id="final-attempts">0</span></p>
+    <p>Lives remaining: <span id="final-lives">3</span></p>
+    <p>Score gained: <span id="final-score">0</span></p>
+    <button onclick="resetGame()">PLAY AGAIN</button>
+    <button class="next-phase-btn" onclick="goToPhase2()">PROCEED TO PHASE 2</button>
+  </div>
+
+  <!-- Failure Message -->
+  <div id="failure-msg">
+    <h2>SYSTEM START FAILURE</h2>
+    <p id="failure-reason">Protocol mismatch detected!</p>
+    <p>Lives remaining: <span id="remaining-lives">0</span></p>
+    <div id="timer-retry-section" style="display: none;">
+      <p>Try again in: <span id="retry-timer">5</span> seconds</p>
+      <button onclick="cancelRetry()">CANCEL</button>
+    </div>
+    <div id="no-lives-section" style="display: none;">
+      <p>No lives remaining!</p>
+      <button onclick="tryAgainWithTimer()">TRY AGAIN (30s)</button>
+      <button onclick="fullReset()">FULL RESET</button>
+    </div>
+  </div>
+
+  <audio id="backgroundMusic" src="backgroundmusic.mp3" loop></audio>
+  <audio id="rebootSound" src="reboot.mp3"></audio>
+  <audio id="wrongSound" src="wrong.mp3"></audio>
+  <audio id="timeoutSound" src="wrong.mp3"></audio>
+
+  <script>
+    const draggables = document.querySelectorAll('.draggable');
+    const dropzones = document.querySelectorAll('.dropzone');
+    const pool = document.getElementById('names-pool');
+    const successMsg = document.getElementById('success-msg');
+    const failureMsg = document.getElementById('failure-msg');
+    const cornerGlows = document.querySelectorAll('.corner-glow');
+    
+    const backgroundMusic = document.getElementById('backgroundMusic');
+    const rebootSound = document.getElementById('rebootSound');
+    const wrongSound = document.getElementById('wrongSound');
+    const timeoutSound = document.getElementById('timeoutSound');
+    const muteBtn = document.getElementById('muteBtn');
+
+    // Game state - loaded from localStorage
+    let gameState = {
+      lives: 3,
+      score: 0,
+      attempts: 0,
+      currentPhase: 1,
+      phase1Completed: false
+    };
+
+    let timeLeft = 60;
+    let timerInterval = null;
+    let retryTimer = null;
+    let isGameActive = true;
+    let audioInitiated = false;
+
+    // DOM elements for stats
+    const livesCounter = document.getElementById('lives-counter');
+    const timerElement = document.getElementById('timer');
+    const scoreCounter = document.getElementById('score-counter');
+    const attemptsCounter = document.getElementById('attempts-counter');
+    const heartsContainer = document.getElementById('hearts-container');
+    const progressFill = document.getElementById('progress-fill');
+
+    // Load game state from localStorage
+    function loadGameState() {
+      const savedState = localStorage.getItem('flowchartGameState');
+      if (savedState) {
+        gameState = JSON.parse(savedState);
+        
+        // Reset lives to 3 if they're at 0 (game over)
+        if (gameState.lives <= 0) {
+          gameState.lives = 3;
+          gameState.score = 0;
+          gameState.attempts = 0;
+          gameState.phase1Completed = false;
+        }
+        
+        updateUI();
+      }
+    }
+
+    // Save game state to localStorage
+    function saveGameState() {
+      localStorage.setItem('flowchartGameState', JSON.stringify(gameState));
+    }
+
+    // Reset game state (for new game)
+    function resetGameState() {
+      gameState = {
+        lives: 3,
+        score: 0,
+        attempts: 0,
+        currentPhase: 1,
+        phase1Completed: false
+      };
+      saveGameState();
+      updateUI();
+    }
+
+    // Update all UI elements with current state
+    function updateUI() {
+      livesCounter.textContent = gameState.lives;
+      scoreCounter.textContent = gameState.score;
+      attemptsCounter.textContent = gameState.attempts;
+      updateHearts();
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const progress = gameState.phase1Completed ? 50 : 0;
+      progressFill.style.width = progress + '%';
+    }
+
+    function initAudio() {
+      if (!audioInitiated) {
+        backgroundMusic.play().catch(err => console.log("Autoplay blocked"));
+        audioInitiated = true;
+      }
+    }
+
+    function updateHearts() {
+      const hearts = heartsContainer.querySelectorAll('.heart');
+      hearts.forEach((heart, index) => {
+        if (index < gameState.lives) {
+          heart.classList.remove('lost');
+        } else {
+          heart.classList.add('lost');
+        }
+      });
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      timeLeft = 60;
+      timerElement.textContent = timeLeft;
+      timerElement.classList.remove('warning');
+      
+      timerInterval = setInterval(() => {
+        if (!isGameActive) return;
+        
+        timeLeft--;
+        timerElement.textContent = timeLeft;
+        
+        if (timeLeft <= 10) {
+          timerElement.classList.add('warning');
+        }
+        
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          timeOut();
+        }
+      }, 1000);
+    }
+
+    function timeOut() {
+      isGameActive = false;
+      
+      // Reset lives to 0 and show game over
+      gameState.lives = 0;
+      gameState.score = Math.max(0, gameState.score - 50); // Penalty for timeout
+      saveGameState();
+      updateUI();
+      
+      // Clear all dropzones
+      dropzones.forEach(zone => {
+        if (zone.children.length > 0) {
+          const existingItem = zone.children[0];
+          pool.appendChild(existingItem);
+          existingItem.classList.remove('placed');
+          existingItem.setAttribute('draggable', 'true');
+        }
+      });
+      
+      // Show game over screen
+      document.getElementById('failure-reason').textContent = "Time's up! You ran out of time.";
+      document.getElementById('remaining-lives').textContent = gameState.lives;
+      document.getElementById('timer-retry-section').style.display = 'none';
+      document.getElementById('no-lives-section').style.display = 'block';
+      failureMsg.classList.add('show');
+      
+      if (audioInitiated) {
+        timeoutSound.currentTime = 0;
+        timeoutSound.play().catch(err => console.log("Failed to play timeout sound"));
+      }
+    }
+
+    function loseLife() {
+      if (gameState.lives > 0) {
+        gameState.lives--;
+        gameState.score = Math.max(0, gameState.score - 10); // Small penalty for wrong answer
+        saveGameState();
+        updateUI();
+        
+        if (gameState.lives === 0) {
+          showNoLivesOptions();
+        }
+      }
+    }
+
+    function incrementAttempts() {
+      gameState.attempts++;
+      saveGameState();
+      updateUI();
+    }
+
+    muteBtn.addEventListener('click', () => {
+      initAudio();
+      const isMuted = !backgroundMusic.muted;
+      backgroundMusic.muted = isMuted;
+      wrongSound.muted = isMuted;
+      rebootSound.muted = isMuted;
+      timeoutSound.muted = isMuted;
+      muteBtn.classList.toggle('muted');
+    });
+
+    document.addEventListener('click', () => {
+      initAudio();
+      startTimer();
+    }, { once: true });
+    document.addEventListener('touchstart', () => {
+      initAudio();
+      startTimer();
+    }, { once: true });
+
+    function shufflePool() {
+      for (let i = pool.children.length; i >= 0; i--) {
+        pool.appendChild(pool.children[Math.random() * i | 0]);
+      }
+    }
+
+    draggables.forEach(draggable => {
+      draggable.addEventListener('dragstart', (e) => {
+        if (!draggable.classList.contains('placed')) {
+          draggable.classList.add('dragging');
+          setTimeout(() => draggable.style.opacity = '0.5', 0);
+        } else {
+          e.preventDefault();
+        }
+      });
+
+      draggable.addEventListener('dragend', () => {
+        draggable.classList.remove('dragging');
+        draggable.style.opacity = '1';
+      });
+
+      // Click to remove from dropzone
+      draggable.addEventListener('click', () => {
+        if (draggable.classList.contains('placed')) {
+          pool.appendChild(draggable);
+          draggable.classList.remove('placed');
+          draggable.setAttribute('draggable', 'true');
+        }
+      });
+    });
+
+    dropzones.forEach(zone => {
+      zone.addEventListener('dragover', e => {
+        e.preventDefault();
+        zone.classList.add('drag-over');
+      });
+
+      zone.addEventListener('dragleave', () => {
+        zone.classList.remove('drag-over');
+      });
+
+      zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+        
+        const draggable = document.querySelector('.dragging');
+        if (!draggable) return;
+
+        // If zone already has an item, return it to pool
+        if (zone.children.length > 0) {
+          const existingItem = zone.children[0];
+          pool.appendChild(existingItem);
+          existingItem.classList.remove('placed');
+          existingItem.setAttribute('draggable', 'true');
+        }
+        
+        zone.appendChild(draggable);
+        draggable.classList.add('placed');
+        draggable.setAttribute('draggable', 'false');
+      });
+    });
+
+    function showCornerGlow() {
+      cornerGlows.forEach(glow => glow.classList.add('show'));
+      setTimeout(() => {
+        cornerGlows.forEach(glow => glow.classList.remove('show'));
+      }, 800);
+    }
+
+    function checkAnswers() {
+      if (!isGameActive) return;
+      
+      incrementAttempts();
+      let allCorrect = true;
+      let allFilled = true;
+
+      dropzones.forEach(zone => {
+        const target = zone.getAttribute('data-target');
+        const placed = zone.children[0];
+        
+        if (!placed) {
+          allFilled = false;
+        } else {
+          const placedName = placed.getAttribute('data-name');
+          if (target !== placedName) {
+            allCorrect = false;
+            zone.style.borderColor = 'var(--neon-red)';
+            setTimeout(() => {
+              zone.style.borderColor = '';
+            }, 1000);
+          }
+        }
+      });
+
+      if (!allFilled) {
+        showFailure("Please fill all drop zones before rebooting!");
+        loseLife();
+        return;
+      }
+
+      if (allCorrect) {
+        // Success!
+        isGameActive = false;
+        clearInterval(timerInterval);
+        
+        // Calculate score based on performance
+        const timeBonus = Math.max(0, timeLeft * 2); // 2 points per second remaining
+        const attemptsPenalty = gameState.attempts * 5; // 5 points penalty per attempt
+        const livesBonus = gameState.lives * 20; // 20 points per remaining life
+        const phaseCompletionBonus = 100; // Base bonus for completing phase
+        
+        const phaseScore = Math.max(0, phaseCompletionBonus + timeBonus - attemptsPenalty + livesBonus);
+        gameState.score += phaseScore;
+        gameState.phase1Completed = true;
+        saveGameState();
+        
+        // Update success message with stats
+        document.getElementById('final-time').textContent = 60 - timeLeft;
+        document.getElementById('final-attempts').textContent = gameState.attempts;
+        document.getElementById('final-lives').textContent = gameState.lives;
+        document.getElementById('final-score').textContent = phaseScore;
+        
+        successMsg.classList.add('show');
+        
+        if (audioInitiated) {
+          rebootSound.currentTime = 0;
+          rebootSound.play().catch(err => console.log("Failed to play reboot sound"));
+        }
+      } else {
+        // Wrong answer
+        loseLife();
+        showCornerGlow();
+        
+        if (audioInitiated) {
+          wrongSound.currentTime = 0;
+          wrongSound.play().catch(err => console.log("Failed to play wrong sound"));
+        }
+        
+        showFailure("Protocol mismatch detected! Check your connections.");
+      }
+    }
+
+    function showFailure(reason) {
+      document.getElementById('failure-reason').textContent = reason;
+      document.getElementById('remaining-lives').textContent = gameState.lives;
+      
+      if (gameState.lives > 0) {
+        document.getElementById('timer-retry-section').style.display = 'none';
+        document.getElementById('no-lives-section').style.display = 'none';
+        failureMsg.classList.add('show');
+        
+        // Auto-hide after 2 seconds if still have lives
+        setTimeout(() => {
+          if (failureMsg.classList.contains('show')) {
+            failureMsg.classList.remove('show');
+          }
+        }, 2000);
+      } else {
+        showNoLivesOptions();
+      }
+    }
+
+    function showNoLivesOptions() {
+      isGameActive = false;
+      clearInterval(timerInterval);
+      document.getElementById('timer-retry-section').style.display = 'none';
+      document.getElementById('no-lives-section').style.display = 'block';
+      failureMsg.classList.add('show');
+    }
+
+    function goToPhase2() {
+      window.location.href = 'phase2.html';
+    }
+
+    function tryAgainWithTimer() {
+      failureMsg.classList.remove('show');
+      resetGameState();
+      
+      // Clear all dropzones
+      dropzones.forEach(zone => {
+        if (zone.children.length > 0) {
+          const existingItem = zone.children[0];
+          pool.appendChild(existingItem);
+          existingItem.classList.remove('placed');
+          existingItem.setAttribute('draggable', 'true');
+        }
+      });
+      
+      shufflePool();
+      isGameActive = true;
+      startTimer();
+    }
+
+    function cancelRetry() {
+      clearTimeout(retryTimer);
+      document.getElementById('timer-retry-section').style.display = 'none';
+      failureMsg.classList.remove('show');
+    }
+
+    function resetGame() {
+      successMsg.classList.remove('show');
+      failureMsg.classList.remove('show');
+      
+      // Reset only phase-specific stats, keep overall score
+      gameState.attempts = 0;
+      gameState.phase1Completed = false;
+      saveGameState();
+      updateUI();
+      
+      // Clear all dropzones
+      dropzones.forEach(zone => {
+        if (zone.children.length > 0) {
+          const existingItem = zone.children[0];
+          pool.appendChild(existingItem);
+          existingItem.classList.remove('placed');
+          existingItem.setAttribute('draggable', 'true');
+        }
+      });
+      
+      shufflePool();
+      isGameActive = true;
+      startTimer();
+    }
+
+    function fullReset() {
+      successMsg.classList.remove('show');
+      failureMsg.classList.remove('show');
+      
+      resetGameState();
+      
+      // Clear all dropzones
+      dropzones.forEach(zone => {
+        if (zone.children.length > 0) {
+          const existingItem = zone.children[0];
+          pool.appendChild(existingItem);
+          existingItem.classList.remove('placed');
+          existingItem.setAttribute('draggable', 'true');
+        }
+      });
+      
+      shufflePool();
+      isGameActive = true;
+      startTimer();
+    }
+
+    // Initialize game
+    window.onload = () => {
+      loadGameState();
+      shufflePool();
+      updateUI();
+      timerElement.textContent = timeLeft;
+    };
+
+  </script>
+</body>
+</html>
