@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Logic Gate Protocol</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --neon-green: #00ff41;
+      --neon-red: #ff0040;
+      --neon-purple: #c724fe;
+      --neon-yellow: #ffcc00;
+      --neon-blue: #00f3ff;
+      --dark-bg: #000000;
+      --glass-bg: rgba(0, 20, 10, 0.85);
+      --glass-border: rgba(0, 255, 65, 0.3);
+      --critical-red: rgba(255, 0, 64, 0.9);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 50% -20%, #001a00, #000000);
+      color: var(--neon-green);
+      font-family: 'Orbitron', sans-serif;
+      padding: 20px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .corner-glow {
+      position: fixed;
+      width: 200px;
+      height: 200px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 9999;
+    }
+
+    .corner-glow.show { opacity: 1; }
+    .corner-glow.top-left { top: 0; left: 0; background: radial-gradient(circle at top left, var(--neon-red) 0%, transparent 70%); }
+    .corner-glow.top-right { top: 0; right: 0; background: radial-gradient(circle at top right, var(--neon-red) 0%, transparent 70%); }
+    .corner-glow.bottom-left { bottom: 0; left: 0; background: radial-gradient(circle at bottom left, var(--neon-red) 0%, transparent 70%); }
+    .corner-glow.bottom-right { bottom: 0; right: 0; background: radial-gradient(circle at bottom right, var(--neon-red) 0%, transparent 70%); }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .header-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 20px;
+      padding: 0 10px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .stats-box {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 15px 25px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
+    }
+
+    .stats-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stats-label {
+      color: #aaffbb;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stats-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      text-shadow: 0 0 10px currentColor;
+    }
+
+    .lives { color: var(--neon-red); }
+    .timer { color: var(--neon-green); }
+    .score { color: #ff8c00; }
+
+    h1 {
+      text-align: center;
+      font-size: 3rem;
+      margin: 10px 0;
+      text-transform: uppercase;
+      letter-spacing: 6px;
+      text-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green);
+    }
+
+    p.subtitle {
+      text-align: center;
+      font-size: 1.2rem;
+      margin-bottom: 40px;
+      color: #aaffbb;
+      text-shadow: 0 0 5px var(--neon-green);
+    }
+
+    .mute-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 50%;
+      padding: 12px;
+      color: var(--neon-green);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+      z-index: 100;
+    }
+
+    .mute-btn:hover {
+      box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+      transform: scale(1.1);
+    }
+
+    .mute-btn .speaker-off { display: none; }
+    .mute-btn.muted .speaker-on { display: none; }
+    .mute-btn.muted .speaker-off { display: block; }
+    .mute-btn.muted { color: #666; }
+
+    .heart {
+      color: var(--neon-red);
+      font-size: 1.4rem;
+      margin: 0 2px;
+      text-shadow: 0 0 10px var(--neon-red);
+    }
+
+    .heart.lost {
+      color: #222;
+      text-shadow: none;
+    }
+
+    .question-card {
+      background: var(--glass-bg);
+      border: 2px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 40px;
+      margin: 30px 0;
+      width: 100%;
+      max-width: 900px;
+      box-shadow: 0 0 30px rgba(0, 255, 65, 0.2);
+    }
+
+    .question-card.critical {
+      background: rgba(20, 0, 0, 0.9);
+      border-color: var(--neon-red);
+      box-shadow: 0 0 40px rgba(255, 0, 64, 0.3);
+      animation: pulseCritical 2s infinite;
+    }
+
+    @keyframes pulseCritical {
+      0%, 100% { box-shadow: 0 0 30px rgba(255, 0, 64, 0.3); }
+      50% { box-shadow: 0 0 50px rgba(255, 0, 64, 0.6); }
+    }
+
+    .critical-banner {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(45deg, var(--neon-red), #ff3300);
+      color: #000;
+      padding: 8px 30px;
+      border-radius: 20px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-size: 1.1rem;
+      box-shadow: 0 0 20px var(--neon-red);
+      z-index: 1;
+    }
+
+    .question-text {
+      font-size: 1.4rem;
+      color: var(--neon-green);
+      margin-bottom: 30px;
+      text-align: center;
+      text-shadow: 0 0 10px var(--neon-green);
+    }
+
+    .question-text.critical {
+      color: var(--neon-yellow);
+      text-shadow: 0 0 10px var(--neon-yellow);
+    }
+
+    .protocol-display {
+      font-family: 'Courier New', monospace;
+      font-size: 1.3rem;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 25px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      margin: 20px 0;
+      line-height: 2;
+    }
+
+    .protocol-display.critical {
+      border-color: var(--neon-red);
+      background: rgba(20, 0, 0, 0.8);
+    }
+
+    .condition-row {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+
+    .condition-label {
+      color: var(--neon-green);
+      font-weight: bold;
+      min-width: 50px;
+    }
+
+    .condition-value {
+      padding: 8px 15px;
+      background: rgba(0, 255, 65, 0.15);
+      border: 1px solid var(--neon-green);
+      border-radius: 5px;
+      color: #fff;
+    }
+
+    .condition-value.critical {
+      background: rgba(255, 0, 64, 0.15);
+      border-color: var(--neon-red);
+    }
+
+    .operator-slot {
+      display: inline-block;
+      min-width: 80px;
+      min-height: 50px;
+      border: 2px dashed rgba(0, 255, 65, 0.5);
+      border-radius: 8px;
+      padding: 10px 15px;
+      background: rgba(0, 0, 0, 0.5);
+      transition: all 0.3s ease;
+      text-align: center;
+      vertical-align: middle;
+      line-height: 30px;
+      cursor: pointer;
+    }
+
+    /* Input style for critical slots */
+    .operator-input {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      width: 100px;
+      padding: 8px;
+      margin: 0 5px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid var(--neon-yellow);
+      border-radius: 5px;
+      color: var(--neon-yellow);
+      text-transform: uppercase;
+      transition: border-color 0.3s;
+      box-shadow: 0 0 5px var(--neon-yellow);
+    }
+    
+    .operator-input.first-slot {
+      width: 60px; /* Smaller width for the first slot which may be NOT */
+    }
+
+    .operator-input.correct {
+      border-color: var(--neon-green);
+      box-shadow: 0 0 10px var(--neon-green);
+      background: rgba(0, 255, 65, 0.1);
+    }
+
+    .operator-input.incorrect {
+      border-color: var(--neon-red);
+      box-shadow: 0 0 10px var(--neon-red);
+      animation: shake 0.5s;
+    }
+
+    .operator-slot:hover {
+      background: rgba(0, 255, 65, 0.1);
+      border-color: var(--neon-green);
+    }
+
+    .operator-slot.filled {
+      background: rgba(0, 255, 65, 0.2);
+      border-style: solid;
+    }
+
+    .operator-slot.correct {
+      border-color: var(--neon-green);
+      background: rgba(0, 255, 65, 0.3);
+      box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+    }
+
+    .operator-slot.incorrect {
+      border-color: var(--neon-red);
+      background: rgba(255, 0, 64, 0.3);
+      animation: shake 0.5s;
+    }
+
+    .options-pool {
+      margin-top: 30px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      padding: 25px;
+      background: rgba(0, 10, 5, 0.9);
+      border: 1px solid var(--neon-green);
+      border-radius: 15px;
+      min-height: 100px;
+    }
+
+    .options-pool.critical {
+      border-color: var(--neon-red);
+      background: rgba(20, 0, 0, 0.9);
+      /* Hide options pool for critical questions */
+      display: none; 
+    }
+
+    .draggable-operator {
+      background: rgba(0, 255, 65, 0.15);
+      color: #fff;
+      border: 1px solid var(--neon-green);
+      padding: 12px 24px;
+      border-radius: 30px;
+      cursor: grab;
+      font-weight: 600;
+      font-size: 1.1rem;
+      user-select: none;
+      transition: all 0.2s;
+      text-shadow: 0 0 5px var(--neon-green);
+      box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+      font-family: 'Courier New', monospace;
+    }
+
+    .draggable-operator.critical {
+      background: rgba(255, 0, 64, 0.15);
+      border-color: var(--neon-red);
+      text-shadow: 0 0 5px var(--neon-red);
+      box-shadow: 0 0 10px rgba(255, 0, 64, 0.2);
+    }
+
+    .draggable-operator:hover {
+      background: var(--neon-green);
+      color: #000;
+      box-shadow: 0 0 20px var(--neon-green);
+      transform: scale(1.05);
+    }
+
+    .draggable-operator.critical:hover {
+      background: var(--neon-red);
+      color: #000;
+      box-shadow: 0 0 20px var(--neon-red);
+    }
+
+    .draggable-operator:active {
+      cursor: grabbing;
+    }
+
+    .draggable-operator.placed {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 20px;
+      margin-top: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .action-btn {
+      padding: 15px 40px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--neon-green);
+      background: transparent;
+      border: 2px solid var(--neon-green);
+      border-radius: 5px;
+      cursor: pointer;
+      transition: 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .action-btn:hover {
+      background: var(--neon-green);
+      color: #000;
+      box-shadow: 0 0 30px var(--neon-green);
+    }
+
+    .action-btn.critical {
+      color: var(--neon-red);
+      border-color: var(--neon-red);
+      animation: pulseBtn 1.5s infinite;
+    }
+
+    .action-btn.critical:hover {
+      background: var(--neon-red);
+      color: #000;
+      box-shadow: 0 0 30px var(--neon-red);
+    }
+
+    @keyframes pulseBtn {
+      0%, 100% { box-shadow: 0 0 10px rgba(255, 0, 64, 0.3); }
+      50% { box-shadow: 0 0 25px rgba(255, 0, 64, 0.8); }
+    }
+
+    .action-btn.submit {
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 65, 0.3); }
+      50% { box-shadow: 0 0 20px rgba(0, 255, 65, 0.6); }
+    }
+
+    .modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: rgba(0, 0, 0, 0.95);
+      border: 4px solid var(--neon-green);
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      z-index: 999;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      width: 90%;
+      max-width: 500px;
+      pointer-events: none; /* Initially disabled */
+    }
+
+    .modal.show {
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: all;
+    }
+
+    .modal.failure {
+      border-color: var(--neon-red);
+    }
+
+    .modal.critical-success {
+      border-color: var(--neon-yellow);
+      background: rgba(0, 0, 0, 0.98);
+    }
+
+    .modal.critical-success h2 {
+      color: var(--neon-yellow);
+    }
+
+    .modal h2 {
+      font-size: 2.5rem;
+      margin: 0 0 20px 0;
+      text-shadow: 0 0 20px currentColor;
+    }
+
+    .modal p {
+      color: white;
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+
+    @keyframes pulseWarning {
+      0% { text-shadow: 0 0 10px var(--neon-green); }
+      50% { text-shadow: 0 0 20px var(--neon-red), 0 0 30px var(--neon-red); }
+      100% { text-shadow: 0 0 10px var(--neon-green); }
+    }
+
+    .timer.warning {
+      animation: pulseWarning 1s infinite;
+      color: var(--neon-red);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+      margin: 20px 0;
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--neon-green), var(--neon-purple));
+      border-radius: 10px;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px var(--neon-green);
+    }
+
+    .question-number {
+      color: var(--neon-purple);
+      font-size: 1rem;
+      text-align: center;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .question-number.critical {
+      color: var(--neon-red);
+    }
+
+    .phase-indicator {
+      text-align: center;
+      margin: 10px 0;
+      color: #aaffbb;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .target-outcome {
+      display: inline-block;
+      padding: 10px 20px;
+      background: linear-gradient(45deg, rgba(0, 255, 65, 0.2), rgba(199, 36, 254, 0.2));
+      border: 2px solid var(--neon-purple);
+      border-radius: 10px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--neon-purple);
+      text-shadow: 0 0 10px var(--neon-purple);
+      margin: 10px 0;
+    }
+
+    .target-outcome.critical {
+      background: linear-gradient(45deg, rgba(255, 0, 64, 0.2), rgba(255, 204, 0, 0.2));
+      border-color: var(--neon-yellow);
+      color: var(--neon-yellow);
+      text-shadow: 0 0 10px var(--neon-yellow);
+    }
+
+    .hint-text {
+      font-size: 0.9rem;
+      color: #888;
+      font-style: italic;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .critical-warning {
+      text-align: center;
+      color: var(--neon-red);
+      font-size: 1.1rem;
+      margin: 15px 0;
+      text-shadow: 0 0 10px var(--neon-red);
+      font-weight: bold;
+    }
+
+    .complex-expression {
+      font-family: 'Courier New', monospace;
+      font-size: 1.4rem;
+      text-align: center;
+      margin: 25px 0;
+      line-height: 1.8;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid rgba(0, 255, 65, 0.3);
+    }
+
+    .complex-expression.critical {
+      border-color: var(--neon-red);
+      background: rgba(20, 0, 0, 0.7);
+      font-size: 1.3rem;
+    }
+
+    .bracket {
+      color: var(--neon-blue);
+      font-weight: bold;
+      font-size: 1.5rem;
+    }
+
+    .bracket.critical {
+      color: var(--neon-yellow);
+    }
+  </style>
+</head>
+<body>
+  <div class="corner-glow top-left"></div>
+  <div class="corner-glow top-right"></div>
+  <div class="corner-glow bottom-left"></div>
+  <div class="corner-glow bottom-right"></div>
+
+  <div class="container">
+    <header>
+      <div class="header-stats">
+        <div class="stats-box">
+          <div class="stats-item">
+            <span class="stats-label">Lives:</span>
+            <span class="stats-value lives" id="lives-counter">3</span>
+            <div id="hearts-container">
+              <span class="heart">♥</span>
+              <span class="heart">♥</span>
+              <span class="heart">♥</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-box">
+          <div class="stats-item">
+            <span class="stats-label">Timer:</span>
+            <span class="stats-value timer" id="timer">180</span>
+          </div>
+        </div>
+
+        <div class="stats-box">
+          <div class="stats-item">
+            <span class="stats-label">Score:</span>
+            <span class="stats-value score" id="score-counter">0</span>
+          </div>
+        </div>
+      </div>
+
+      <h1>Logic Gate Protocol</h1>
+      <p class="subtitle">Phase 3: Logical Operations</p>
+      <div class="phase-indicator">Phase 3 of 3</div>
+      
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
+
+      <button id="muteBtn" class="mute-btn" aria-label="Toggle sound">
+        <svg class="speaker-on" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+          <path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z" />
+        </svg>
+        <svg class="speaker-off" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+          <path d="M12,4L9.91,6.09L12,8.18M4.27,3L3,4.27L7.73,9H3V15H7L12,20V13.27L16.25,17.53C15.58,18.04 14.83,18.46 14,18.7V20.77C15.38,20.45 16.63,19.82 17.68,18.96L19.73,21L21,19.73L12,10.73M19,12C19,12.94 18.8,13.82 18.46,14.64L19.97,16.15C20.62,15.29 21,14.22 21,13V11C21,7.9 19.4,5.17 16.71,3.68L18.12,5.09C19.88,6.64 21,8.77 21,11H19M16.5,12C16.5,10.23 15.5,8.71 14,7.97V5.29C16.89,6.15 19,8.83 19,12H16.5M14,3.23V1.11L19.5,6.61C18.08,5.09 16.13,4.06 14,3.23Z" />
+        </svg>
+      </button>
+    </header>
+
+    <div id="question-container"></div>
+
+    <div class="button-group">
+      <button class="action-btn submit" onclick="checkAnswer()">Execute Protocol</button>
+      <button class="action-btn" onclick="resetQuestion()">Reset Question</button>
+    </div>
+  </div>
+
+  <div id="success-modal" class="modal">
+    <h2 style="color: var(--neon-green)">LOGIC SYSTEM ONLINE</h2>
+    <p>All gates configured successfully!</p>
+    <p>Final Score: <span id="final-score">0</span></p>
+    <p>Time: <span id="final-time">0</span> seconds</p>
+    <p>Phase 3 Score: <span id="phase3-score">0</span></p>
+    <div class="button-group">
+      <button class="action-btn" onclick="location.href='index.html'">Return to Phase 1</button>
+      <button class="action-btn" onclick="restartGame()">Restart Phase 3</button>
+    </div>
+  </div>
+
+  <div id="critical-success-modal" class="modal critical-success">
+    <h2 style="color: var(--neon-yellow)">CRITICAL LOGIC RESOLVED</h2>
+    <p id="critical-success-message">You successfully condensed the complex logic expression!</p>
+    <p>Points Earned: <span id="critical-points">0</span></p>
+    <button class="action-btn" onclick="closeCriticalSuccessModal()">Continue</button>
+  </div>
+
+  <div id="failure-modal" class="modal failure">
+    <h2 style="color: var(--neon-red)">LOGIC FAULT DETECTED</h2>
+    <p id="failure-reason">Gate configuration error!</p>
+    <p>Lives remaining: <span id="remaining-lives">0</span></p>
+    <div id="game-over-section" style="display: none;">
+      <p>Final Score: <span id="gameover-score">0</span></p>
+      <div class="button-group">
+        <button class="action-btn" onclick="returnToPhase1()">Return to Phase 1</button>
+        <button class="action-btn submit" onclick="restartGame()">Try Again</button>
+      </div>
+    </div>
+    <button class="action-btn" id="continue-btn" onclick="closeFailureModal()" style="display: none;">Continue</button>
+  </div>
+
+  <audio id="backgroundMusic" src="backgroundmusic.mp3" loop></audio>
+  <audio id="rebootSound" src="reboot.mp3"></audio>
+  <audio id="wrongSound" src="wrong.mp3"></audio>
+  <audio id="criticalSound" src="wrong.mp3"></audio>
+  <audio id="successSound" src="reboot.mp3"></audio>
+  <!-- NEW: Alarm sound for critical errors -->
+  <audio id="criticalAlarmSound" src="alarm.mp3" loop></audio>
+
+  <script>
+    const questions = [
+      // AND questions (using "both", "and", "also", "as well as")
+      {
+        type: 'protocol',
+        operator: 'AND',
+        text: 'Access is granted only if the keycard is valid and the laser grid is also disabled.',
+        conditions: [
+          { label: 'C1', name: 'Keycard', value: 'Valid', bool: true },
+          { label: 'C2', name: 'Laser Grid', value: 'Enabled', bool: false }
+        ],
+        target: 'FALSE',
+        targetDisplay: 'ACCESS DENIED',
+        correctAnswer: 'AND'
+      },
+      {
+        type: 'protocol',
+        operator: 'AND',
+        text: 'The system will boot only when both power is connected and diagnostics are complete.',
+        conditions: [
+          { label: 'C1', name: 'Power', value: 'Connected', bool: true },
+          { label: 'C2', name: 'Diagnostics', value: 'Complete', bool: true }
+        ],
+        target: 'TRUE',
+        targetDisplay: 'SYSTEM BOOTING',
+        correctAnswer: 'AND'
+      },
+      {
+        type: 'protocol',
+        operator: 'AND',
+        text: 'The missile launch requires both authorization codes and verified coordinates.',
+        conditions: [
+          { label: 'C1', name: 'Auth Codes', value: 'Invalid', bool: false },
+          { label: 'C2', name: 'Coordinates', value: 'Verified', bool: true }
+        ],
+        target: 'FALSE',
+        targetDisplay: 'LAUNCH ABORTED',
+        correctAnswer: 'AND'
+      },
+
+      // OR questions (using "either", "or", "at least one")
+      {
+        type: 'protocol',
+        operator: 'OR',
+        text: 'The alarm will sound if either motion is detected or a door is forced open.',
+        conditions: [
+          { label: 'C1', name: 'Motion', value: 'Detected', bool: false },
+          { label: 'C2', name: 'Door', value: 'Forced', bool: true }
+        ],
+        target: 'TRUE',
+        targetDisplay: 'ALARM ACTIVE',
+        correctAnswer: 'OR'
+      },
+      {
+        type: 'protocol',
+        operator: 'OR',
+        text: 'The backup system engages if primary power fails or the generator is offline.',
+        conditions: [
+          { label: 'C1', name: 'Primary Power', value: 'Stable', bool: true },
+          { label: 'C2', name: 'Generator', value: 'Online', bool: true }
+        ],
+        target: 'FALSE',
+        targetDisplay: 'BACKUP STANDBY',
+        correctAnswer: 'OR'
+      },
+      {
+        type: 'protocol',
+        operator: 'OR',
+        text: 'At least one authentication method must succeed: fingerprint or retinal scan.',
+        conditions: [
+          { label: 'C1', name: 'Fingerprint', value: 'Failed', bool: false },
+          { label: 'C2', name: 'Retinal Scan', value: 'Failed', bool: false }
+        ],
+        target: 'FALSE',
+        targetDisplay: 'ACCESS DENIED',
+        correctAnswer: 'OR'
+      },
+
+      // NOT questions (using "not", "do not", "never", "unless")
+      {
+        type: 'not',
+        operator: 'NOT',
+        text: 'The elevator will not operate unless the safety override is engaged.',
+        conditions: [
+          { label: '', name: 'Safety Override', value: 'Disengaged', bool: false }
+        ],
+        target: 'TRUE',
+        targetDisplay: 'ELEVATOR LOCKED',
+        correctAnswer: 'NOT'
+      },
+      {
+        type: 'not',
+        operator: 'NOT',
+        text: 'Do not proceed if the containment field is unstable.',
+        conditions: [
+          { label: '', name: 'Containment Field', value: 'Unstable', bool: false }
+        ],
+        target: 'FALSE',
+        targetDisplay: 'PROCEED AUTHORIZED',
+        correctAnswer: 'NOT'
+      },
+
+      // Complex combinations
+      {
+        type: 'complex',
+        text: 'The reactor will shut down if temperature is critical and either pressure is high or coolant flow is low.',
+        conditions: [
+          { label: 'C1', name: 'Temperature', value: 'Critical', bool: true },
+          { label: 'C2', name: 'Pressure', value: 'High', bool: true },
+          { label: 'C3', name: 'Coolant Flow', value: 'Normal', bool: false }
+        ],
+        slots: 2,
+        structure: '((C1 [SLOT0] C2) [SLOT1] C3)',
+        target: 'TRUE',
+        targetDisplay: 'REACTOR SHUTDOWN',
+        correctAnswers: ['AND', 'OR']
+      },
+      {
+        type: 'complex',
+        text: 'Access is permitted with either admin credentials or both employee ID and biometric verification.',
+        conditions: [
+          { label: 'C1', name: 'Admin Credentials', value: 'Invalid', bool: false },
+          { label: 'C2', name: 'Employee ID', value: 'Valid', bool: true },
+          { label: 'C3', name: 'Biometric Verification', value: 'Valid', bool: true }
+        ],
+        slots: 2,
+        structure: '((C1 [SLOT0] C2) [SLOT1] C3)',
+        target: 'TRUE',
+        targetDisplay: 'ACCESS PERMITTED',
+        correctAnswers: ['OR', 'AND']
+      },
+
+      // CRITICAL ERROR QUESTIONS - Keep these in their original format
+      {
+        type: 'critical',
+        text: 'CRITICAL ERROR: Simplify using De Morgan\'s Law (Triple Negation)',
+        originalExpr: '(NOT A) AND (NOT B) AND (NOT C)',
+        simplifiedExpr: '[SLOT_START] ( A [SLOT0] B [SLOT1] C )',
+        conditions: [
+          { label: 'A', value: 'TRUE', bool: true },
+          { label: 'B', value: 'FALSE', bool: false },
+          { label: 'C', value: 'TRUE', bool: true }
+        ],
+        slots: 3, // 1 (NOT) + 2 (OR, OR)
+        target: 'FALSE',
+        targetDisplay: 'ACCESS GRANTED',
+        correctAnswers: ['NOT', 'OR', 'OR'],
+        explanation: 'NOT(A) AND NOT(B) AND NOT(C) = NOT(A OR B OR C)'
+      },
+      {
+        type: 'critical',
+        text: 'CRITICAL ERROR: Simplify complex nested expression (Distributive & De Morgan)',
+        originalExpr: '((NOT A) AND (NOT B)) OR ((NOT C) AND (NOT D))',
+        simplifiedExpr: '[SLOT_START] ( A [SLOT0] B ) [SLOT1] [SLOT2] ( C [SLOT3] D )',
+        conditions: [
+          { label: 'A', value: 'FALSE', bool: false },
+          { label: 'B', value: 'FALSE', bool: false },
+          { label: 'C', value: 'TRUE', bool: true },
+          { label: 'D', value: 'FALSE', bool: false }
+        ],
+        slots: 5, // 2 (NOT) + 1 (OR) + 2 (OR, OR) = 5
+        target: 'TRUE',
+        targetDisplay: 'PROTOCOL FAILURE',
+        correctAnswers: ['NOT', 'OR', 'OR', 'NOT', 'OR'],
+        explanation: 'NOT(A OR B) OR NOT(C OR D)'
+      },
+      {
+        type: 'critical',
+        text: 'CRITICAL ERROR: Apply distributive law (Three terms)',
+        originalExpr: '(A AND B) OR (A AND C) OR (A AND D)',
+        simplifiedExpr: 'A [SLOT_START] ( B [SLOT0] C [SLOT1] D )',
+        conditions: [
+          { label: 'A', value: 'TRUE', bool: true },
+          { label: 'B', value: 'FALSE', bool: false },
+          { label: 'C', value: 'TRUE', bool: true },
+          { label: 'D', value: 'FALSE', bool: false }
+        ],
+        slots: 3, // 1 (AND) + 2 (OR, OR)
+        target: 'TRUE',
+        targetDisplay: 'OPERATION SUCCESS',
+        correctAnswers: ['AND', 'OR', 'OR'],
+        explanation: '(A AND B) OR (A AND C) OR (A AND D) = A AND (B OR C OR D)'
+      },
+      {
+        type: 'critical',
+        text: 'CRITICAL ERROR: Simplify with nested NOTs (Three terms)',
+        originalExpr: 'NOT ( (NOT A) AND (NOT B) AND (NOT C) )',
+        simplifiedExpr: 'A [SLOT_START] B [SLOT0] C',
+        conditions: [
+          { label: 'A', value: 'FALSE', bool: false },
+          { label: 'B', value: 'FALSE', bool: false },
+          { label: 'C', value: 'FALSE', bool: false }
+        ],
+        slots: 2, // 2 slots (OR, OR)
+        target: 'FALSE',
+        targetDisplay: 'SYSTEM FAILURE',
+        correctAnswers: ['OR', 'OR'],
+        explanation: 'NOT(NOT A AND NOT B AND NOT C) = A OR B OR C'
+      },
+      {
+        type: 'critical',
+        text: 'CRITICAL ERROR: Distributive Law (AND over OR, multiple applications)',
+        originalExpr: '(A OR B) AND (A OR C) AND (A OR D)',
+        simplifiedExpr: 'A [SLOT_START] ( B [SLOT0] C [SLOT1] D )',
+        conditions: [
+          { label: 'A', value: 'FALSE', bool: false },
+          { label: 'B', value: 'TRUE', bool: true },
+          { label: 'C', value: 'TRUE', bool: true },
+          { label: 'D', value: 'FALSE', bool: false }
+        ],
+        slots: 3, // 1 (OR) + 2 (AND, AND)
+        target: 'TRUE',
+        targetDisplay: 'SYSTEM STABLE',
+        correctAnswers: ['OR', 'AND', 'AND'],
+        explanation: '(A OR B) AND (A OR C) AND (A OR D) = A OR (B AND C AND D)'
+      }
+    ];
+
+    let currentQuestion = 0;
+    let lives = 3;
+    let score = 0;
+    let phase3Score = 0;
+    let timeLeft = 180;
+    let timerInterval = null;
+    let audioInitiated = false;
+    let isGameActive = true;
+    let selectedCriticalQuestions = [];
+    let currentQuestions = [];
+    let criticalErrorsAttempted = 0; // New: Counter for critical questions in a run
+    let criticalErrorsCorrect = 0;   // New: Counter for correct critical questions
+    let criticalQuestionStart = -1;  // New: Index where critical questions start
+
+    const backgroundMusic = document.getElementById('backgroundMusic');
+    const rebootSound = document.getElementById('rebootSound');
+    const wrongSound = document.getElementById('wrongSound');
+    const criticalSound = document.getElementById('criticalSound');
+    const successSound = document.getElementById('successSound');
+    const criticalAlarmSound = document.getElementById('criticalAlarmSound'); // NEW: Alarm sound
+    const muteBtn = document.getElementById('muteBtn');
+    const questionContainer = document.getElementById('question-container');
+    const livesCounter = document.getElementById('lives-counter');
+    const timerElement = document.getElementById('timer');
+    const scoreCounter = document.getElementById('score-counter');
+    const heartsContainer = document.getElementById('hearts-container');
+    const progressFill = document.getElementById('progress-fill');
+    const successModal = document.getElementById('success-modal');
+    const criticalSuccessModal = document.getElementById('critical-success-modal');
+    const failureModal = document.getElementById('failure-modal');
+    const cornerGlows = document.querySelectorAll('.corner-glow');
+
+    function startCriticalAlarm() {
+      if (audioInitiated) {
+        criticalAlarmSound.currentTime = 0;
+        criticalAlarmSound.play().catch(err => console.log("Alarm play failed:", err));
+      }
+    }
+
+    function stopCriticalAlarm() {
+      criticalAlarmSound.pause();
+      criticalAlarmSound.currentTime = 0;
+    }
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function selectQuestions() {
+      // Separate regular and critical questions
+      const regularQuestions = questions.filter(q => q.type !== 'critical');
+      const criticalQuestions = questions.filter(q => q.type === 'critical');
+      
+      // Shuffle both arrays
+      shuffleArray(regularQuestions);
+      shuffleArray(criticalQuestions);
+      
+      // Pick 3 critical questions
+      selectedCriticalQuestions = criticalQuestions.slice(0, Math.min(3, criticalQuestions.length));
+      
+      // Pick 7 regular questions (or fewer if not enough)
+      const selectedRegular = regularQuestions.slice(0, Math.min(7, regularQuestions.length)); // 7 regular questions (10 total questions)
+      
+      // Find a random index to insert the critical block (not at the very end)
+      const insertIndex = Math.floor(Math.random() * (selectedRegular.length - 1)) + 1;
+
+      // Combine questions
+      currentQuestions = [
+        ...selectedRegular.slice(0, insertIndex),
+        ...selectedCriticalQuestions,
+        ...selectedRegular.slice(insertIndex)
+      ];
+
+      criticalQuestionStart = currentQuestions.findIndex(q => q.type === 'critical');
+      criticalErrorsAttempted = 0;
+      criticalErrorsCorrect = 0;
+    }
+
+    function loadGameState() {
+      const savedState = localStorage.getItem('flowchartGameState');
+      if (savedState) {
+        const gameState = JSON.parse(savedState);
+        lives = gameState.lives || 3;
+        score = gameState.score || 0;
+        if (lives <= 0) {
+          lives = 3;
+          score = 0;
+        }
+        updateUI();
+      }
+    }
+
+    function saveGameState() {
+      const gameState = JSON.parse(localStorage.getItem('flowchartGameState')) || {};
+      gameState.lives = lives;
+      gameState.score = score;
+      localStorage.setItem('flowchartGameState', JSON.stringify(gameState));
+    }
+
+    function returnToPhase1() {
+      const resetState = {
+        lives: 3,
+        score: 0,
+        attempts: 0,
+        currentPhase: 1,
+        phase1Completed: false
+      };
+      localStorage.setItem('flowchartGameState', JSON.stringify(resetState));
+      window.location.href = 'index.html';
+    }
+
+    function initAudio() {
+      if (!audioInitiated) {
+        backgroundMusic.play().catch(err => console.log("Autoplay blocked"));
+        audioInitiated = true;
+      }
+    }
+
+    function updateHearts() {
+      const hearts = heartsContainer.querySelectorAll('.heart');
+      hearts.forEach((heart, index) => {
+        if (index < lives) {
+          heart.classList.remove('lost');
+        } else {
+          heart.classList.add('lost');
+        }
+      });
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      timeLeft = 180;
+      timerElement.textContent = timeLeft;
+      timerElement.classList.remove('warning');
+      
+      timerInterval = setInterval(() => {
+        if (!isGameActive) return;
+        
+        timeLeft--;
+        timerElement.textContent = timeLeft;
+        
+        if (timeLeft <= 30) {
+          timerElement.classList.add('warning');
+        }
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          gameOver("Time's up!");
+        }
+      }, 1000);
+    }
+
+    function updateProgress() {
+      const progress = ((currentQuestion) / currentQuestions.length) * 100;
+      progressFill.style.width = progress + '%';
+    }
+
+    function updateUI() {
+      livesCounter.textContent = lives;
+      scoreCounter.textContent = score;
+      updateHearts();
+    }
+
+    function showCornerGlow() {
+      cornerGlows.forEach(glow => glow.classList.add('show'));
+      setTimeout(() => {
+        cornerGlows.forEach(glow => glow.classList.remove('show'));
+      }, 800);
+    }
+
+    function renderQuestion() {
+      if (currentQuestion >= currentQuestions.length) {
+        gameComplete();
+        return;
+      }
+      
+      const q = currentQuestions[currentQuestion];
+      updateProgress();
+      
+      let html = '';
+      
+      if (q.type === 'critical') {
+        // Critical Question Rendering
+        
+        // Stop any existing alarm when leaving a critical question
+        stopCriticalAlarm();
+        
+        // Start the alarm for the new critical question
+        startCriticalAlarm();
+        
+        // Map placeholders to input fields with correct data-slot index
+        let simplifiedHtml = q.simplifiedExpr
+          .replace(/\[SLOT_START\]/g, '<input type="text" class="operator-input first-slot" data-slot="0" maxlength="3" placeholder="OP">')
+          .replace(/\[SLOT0\]/g, '<input type="text" class="operator-input" data-slot="1" maxlength="3" placeholder="OP">')
+          .replace(/\[SLOT1\]/g, '<input type="text" class="operator-input" data-slot="2" maxlength="3" placeholder="OP">')
+          .replace(/\[SLOT2\]/g, '<input type="text" class="operator-input" data-slot="3" maxlength="3" placeholder="OP">')
+          .replace(/\[SLOT3\]/g, '<input type="text" class="operator-input" data-slot="4" maxlength="3" placeholder="OP">'); // Handles up to 5 slots for complex questions
+
+        html = `
+          <div class="question-card critical">
+            <div class="critical-banner">CRITICAL ERROR</div>
+            <div class="question-number critical">Question ${currentQuestion + 1} of ${currentQuestions.length} (CRITICAL)</div>
+            <div class="question-text critical">${q.text}</div>
+            <div class="critical-warning">Correct all critical errors consecutively for +1 Life Bonus! Wrong answer: -20 score & -1 life.</div>
+            <div class="complex-expression critical">
+              <div style="margin-bottom: 15px; color: #ff9999;">Original: ${q.originalExpr}</div>
+              <div style="margin-top: 15px; color: #ffff99;">Simplified: ${simplifiedHtml}</div>
+              <div class="hint-text" style="color: #666; font-style: normal; margin-top: 20px;">Use: AND, OR, NOT</div>
+            </div>
+        `;
+        
+        html += `<div class="target-outcome critical">TARGET: ${q.targetDisplay || q.target}</div>`;
+        html += `<div class="protocol-display critical">`;
+        
+        q.conditions.forEach((cond) => {
+          html += `
+            <div class="condition-row">
+              <span class="condition-label" style="color: var(--neon-yellow);">${cond.label}:</span>
+              <span class="condition-value critical">${cond.value} (${cond.bool ? 'TRUE' : 'FALSE'})</span>
+            </div>
+          `;
+        });
+        
+        html += `</div>`;
+
+      } else {
+        // Regular Question Rendering (kept drag-and-drop)
+        
+        // Stop alarm if moving from critical to regular question
+        stopCriticalAlarm();
+        
+        html = `
+          <div class="question-card">
+            <div class="question-number">Question ${currentQuestion + 1} of ${currentQuestions.length}</div>
+            <div class="question-text">${q.text}</div>
+        `;
+
+        if (q.type === 'protocol' || q.type === 'not') {
+          html += `<div class="target-outcome">TARGET: ${q.targetDisplay || q.target}</div>`;
+          html += `<div class="protocol-display">`;
+          
+          q.conditions.forEach((cond) => {
+            html += `
+              <div class="condition-row">
+                <span class="condition-label">${cond.label}:</span>
+                <span class="condition-value">${cond.name} = ${cond.value}</span>
+                <span style="color: #666;">(${cond.bool ? 'TRUE' : 'FALSE'})</span>
+              </div>
+            `;
+          });
+          
+          html += `<div style="text-align: center; margin: 30px 0; font-size: 1.2rem;">`;
+          html += `<span>Result = </span>`;
+          if (q.conditions.length === 1) {
+            html += `<span class="operator-slot" data-slot="0"></span>`;
+            html += `<span> [${q.conditions[0].bool ? 'TRUE' : 'FALSE'}]</span>`;
+          } else {
+            html += `<span>[${q.conditions[0].bool ? 'TRUE' : 'FALSE'}]</span> `;
+            html += `<span class="operator-slot" data-slot="0"></span> `;
+            html += `<span>[${q.conditions[1].bool ? 'TRUE' : 'FALSE'}]</span>`;
+          }
+          html += `</div>`;
+          
+          html += `</div>`;
+        } else if (q.type === 'complex') {
+          html += `<div class="target-outcome">TARGET: ${q.targetDisplay}</div>`;
+          html += `<div class="protocol-display">`;
+          
+          q.conditions.forEach((cond) => {
+            html += `
+              <div class="condition-row">
+                <span class="condition-label">${cond.label}:</span>
+                <span class="condition-value">${cond.name} = ${cond.value}</span>
+                <span style="color: #666;">(${cond.bool ? 'TRUE' : 'FALSE'})</span>
+              </div>
+            `;
+          });
+          
+          html += `<div style="text-align: center; margin: 30px 0; font-size: 1.1rem; line-height: 2;">`;
+          html += `<div style="margin-bottom: 15px;">`;
+          html += `<span>(([${q.conditions[0].bool ? 'TRUE' : 'FALSE'}] </span>`;
+          html += `<span class="operator-slot" data-slot="0"></span>`;
+          html += `<span> [${q.conditions[1].bool ? 'TRUE' : 'FALSE'}]) </span>`;
+          html += `<span class="operator-slot" data-slot="1"></span>`;
+          html += `<span> [${q.conditions[2].bool ? 'TRUE' : 'FALSE'}])</span>`;
+          html += `</div>`;
+          html += `</div>`;
+          html += `</div>`;
+        }
+      }
+
+      // Options pool (only for non-critical questions)
+      const operators = shuffleArray(['AND', 'OR', 'NOT']);
+      
+      html += `<div class="options-pool ${q.type === 'critical' ? 'critical' : ''}" id="options-pool">`;
+      operators.forEach((op, idx) => {
+        html += `<div class="draggable-operator ${q.type === 'critical' ? 'critical' : ''}" draggable="true" data-value="${op}" id="option-${idx}">${op}</div>`;
+      });
+      html += `</div>`;
+
+      html += `</div>`;
+      questionContainer.innerHTML = html;
+
+      if (q.type !== 'critical') {
+        setupInteraction();
+      }
+    }
+
+    function setupInteraction() {
+      // Logic for drag-and-drop interaction (for non-critical questions)
+      const slots = document.querySelectorAll('.operator-slot');
+      const draggables = document.querySelectorAll('.draggable-operator');
+      const pool = document.getElementById('options-pool');
+
+      draggables.forEach(draggable => {
+        draggable.addEventListener('dragstart', (e) => {
+          if (!draggable.classList.contains('placed')) {
+            draggable.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+          } else {
+            e.preventDefault();
+          }
+        });
+
+        draggable.addEventListener('dragend', () => {
+          draggable.classList.remove('dragging');
+        });
+
+        draggable.addEventListener('click', () => {
+          if (draggable.classList.contains('placed')) {
+            const slot = document.querySelector(`.operator-slot[data-current="${draggable.dataset.value}"]`);
+            if (slot) {
+              slot.textContent = '';
+              slot.classList.remove('filled');
+              slot.removeAttribute('data-current');
+            }
+            pool.appendChild(draggable);
+            draggable.classList.remove('placed');
+            draggable.setAttribute('draggable', 'true');
+          }
+        });
+      });
+
+      slots.forEach(slot => {
+        slot.addEventListener('dragover', e => {
+          e.preventDefault();
+        });
+
+        slot.addEventListener('drop', e => {
+          e.preventDefault();
+          
+          const draggable = document.querySelector('.dragging');
+          if (!draggable) return;
+
+          const value = draggable.dataset.value;
+          slot.textContent = value;
+          slot.classList.add('filled');
+          slot.dataset.current = value;
+          draggable.classList.add('placed');
+          draggable.setAttribute('draggable', 'false');
+        });
+
+        slot.addEventListener('click', () => {
+          if (slot.classList.contains('filled')) {
+            const value = slot.dataset.current;
+            const draggable = document.querySelector(`.draggable-operator[data-value="${value}"]`);
+            if (draggable) {
+              pool.appendChild(draggable);
+              draggable.classList.remove('placed');
+              draggable.setAttribute('draggable', 'true');
+            }
+            slot.textContent = '';
+            slot.classList.remove('filled');
+            slot.removeAttribute('data-current');
+          }
+        });
+      });
+    }
+
+    function checkAnswer() {
+      if (!isGameActive) return;
+
+      const q = currentQuestions[currentQuestion];
+      let isCorrect = false;
+      let userAnswer = [];
+      let inputElements = [];
+      let isCritical = q.type === 'critical';
+
+      if (isCritical) {
+        // Collect inputs from all slots (starting from data-slot="0")
+        inputElements = Array.from(document.querySelectorAll('.operator-input')).sort((a, b) => 
+          parseInt(a.dataset.slot) - parseInt(b.dataset.slot)
+        );
+        
+        let allFilled = true;
+        inputElements.forEach(input => {
+          const value = input.value.trim().toUpperCase();
+          if (!value) {
+            allFilled = false;
+          }
+          userAnswer.push(value);
+          input.classList.remove('correct', 'incorrect');
+        });
+
+        if (!allFilled) {
+          showFailure("Please fill all operators!");
+          return;
+        }
+
+        let allMatch = true;
+        inputElements.forEach((input, idx) => {
+          const value = input.value.trim().toUpperCase();
+          const expected = q.correctAnswers[idx];
+
+          if (value === expected) {
+            input.classList.add('correct');
+          } else {
+            input.classList.add('incorrect');
+            allMatch = false;
+          }
+        });
+        isCorrect = allMatch;
+
+      } else {
+        // Logic for regular/complex drag-and-drop questions
+        const slots = document.querySelectorAll('.operator-slot');
+        slots.forEach(slot => slot.classList.remove('correct', 'incorrect'));
+        
+        if (q.type === 'complex') {
+          let allFilled = true;
+          slots.forEach(slot => {
+            if (!slot.textContent.trim()) {
+              allFilled = false;
+            }
+          });
+          
+          if (!allFilled) {
+            showFailure("Please fill all operators!");
+            return;
+          }
+          
+          let allMatch = true;
+          slots.forEach((slot, idx) => {
+            const answer = slot.dataset.current || slot.textContent.trim();
+            if (answer === q.correctAnswers[idx]) {
+              slot.classList.add('correct');
+            } else {
+              slot.classList.add('incorrect');
+              allMatch = false;
+            }
+          });
+          isCorrect = allMatch;
+        } else {
+          // Single slot (protocol, not)
+          const slot = document.querySelector('.operator-slot[data-slot="0"]');
+          const answer = slot.dataset.current || slot.textContent.trim();
+
+          if (!answer) {
+            showFailure("Please select an operator!");
+            return;
+          }
+
+          if (answer === q.correctAnswer) {
+            isCorrect = true;
+            slot.classList.add('correct');
+          } else {
+            slot.classList.add('incorrect');
+          }
+        }
+      }
+
+      if (isCorrect) {
+        const timeBonus = Math.max(0, Math.floor(timeLeft / 2));
+        const questionBonus = isCritical ? 50 : 30;
+        const points = questionBonus + timeBonus;
+        
+        score += points;
+        phase3Score += points;
+
+        if (isCritical) {
+          criticalErrorsAttempted++;
+          criticalErrorsCorrect++;
+
+          // Stop the alarm when critical question is solved correctly
+          stopCriticalAlarm();
+
+          // Check if this is the last critical question
+          const isLastCritical = currentQuestion + 1 === criticalQuestionStart + selectedCriticalQuestions.length;
+
+          if (isLastCritical) {
+            let message = `You successfully condensed the complex logic expression!`;
+            if (criticalErrorsCorrect === selectedCriticalQuestions.length) {
+              // ALL critical questions correct - grant bonus life
+              if (lives < 3) {
+                lives++;
+                message += "<br>+1 Life Restored for solving all Critical Errors!";
+              } else {
+                message += "<br>All Critical Errors solved! Max lives reached (3).";
+              }
+            } else {
+              message += `<br>You got ${criticalErrorsCorrect} out of ${selectedCriticalQuestions.length} correct. No bonus life awarded.`;
+            }
+            document.getElementById('critical-success-message').innerHTML = message;
+          } else {
+            document.getElementById('critical-success-message').innerHTML = `Critical logic resolved. ${criticalErrorsCorrect} solved consecutively.`;
+          }
+
+          document.getElementById('critical-points').textContent = points;
+          criticalSuccessModal.classList.add('show');
+          
+          if (audioInitiated) {
+            successSound.currentTime = 0;
+            successSound.play().catch(err => console.log("Failed to play sound"));
+          }
+        } else {
+          if (audioInitiated) {
+            rebootSound.currentTime = 0;
+            rebootSound.play().catch(err => console.log("Failed to play sound"));
+          }
+        }
+        
+        saveGameState();
+        updateUI();
+
+        setTimeout(() => {
+          if (isCritical) {
+            closeCriticalSuccessModal();
+          }
+          currentQuestion++;
+          if (currentQuestion >= currentQuestions.length) {
+            gameComplete();
+          } else {
+            // If the next question is a critical one, and we just finished the consecutive set, reset the critical streak
+            if (currentQuestion > criticalQuestionStart + selectedCriticalQuestions.length && currentQuestions[currentQuestion].type === 'critical') {
+              criticalErrorsCorrect = 0;
+              criticalErrorsAttempted = 0;
+            }
+            renderQuestion();
+          }
+        }, isCritical ? 3500 : 1500); // Longer delay for critical success review
+
+      } else {
+        // Answer is INCORRECT
+        let penaltyScore = 15;
+        let penaltyLife = 1;
+        
+        let reason = "Incorrect operator configuration! Try again.";
+        
+        if (isCritical) {
+          penaltyScore += 20; // Extra 20 points penalty for critical
+          
+          // Reset consecutive streak if a critical error is failed
+          criticalErrorsAttempted++;
+          criticalErrorsCorrect = 0; 
+          
+          reason = `CRITICAL LOGIC FAULT! -${penaltyScore} score & -1 life!`;
+          
+          if (audioInitiated) {
+            criticalSound.currentTime = 0;
+            criticalSound.play().catch(err => console.log("Failed to play sound"));
+          }
+        } else {
+          if (audioInitiated) {
+            wrongSound.currentTime = 0;
+            wrongSound.play().catch(err => console.log("Failed to play sound"));
+          }
+        }
+        
+        lives -= penaltyLife;
+        score = Math.max(0, score - penaltyScore);
+        saveGameState();
+        updateUI();
+        showCornerGlow();
+
+        if (lives <= 0) {
+          gameOver("No lives remaining!");
+        } else {
+          showFailure(reason);
+        }
+      }
+    }
+
+    function closeCriticalSuccessModal() {
+      criticalSuccessModal.classList.remove('show');
+    }
+
+    function resetQuestion() {
+      const q = currentQuestions[currentQuestion];
+      
+      if (q.type === 'critical') {
+        const inputElements = document.querySelectorAll('.operator-input');
+        inputElements.forEach(input => {
+          input.value = '';
+          input.classList.remove('correct', 'incorrect');
+        });
+      } else {
+        const pool = document.getElementById('options-pool');
+        const slots = document.querySelectorAll('.operator-slot');
+        const draggables = document.querySelectorAll('.draggable-operator');
+        
+        slots.forEach(slot => {
+          slot.textContent = '';
+          slot.classList.remove('filled', 'correct', 'incorrect');
+          slot.removeAttribute('data-current');
+        });
+        
+        draggables.forEach(draggable => {
+          pool.appendChild(draggable);
+          draggable.classList.remove('placed');
+          draggable.setAttribute('draggable', 'true');
+        });
+      }
+    }
+
+    function showFailure(reason) {
+      document.getElementById('failure-reason').textContent = reason;
+      document.getElementById('remaining-lives').textContent = lives;
+      document.getElementById('game-over-section').style.display = 'none';
+      document.getElementById('continue-btn').style.display = lives > 0 ? 'block' : 'none';
+      failureModal.classList.add('show');
+      
+      if (lives > 0) {
+        setTimeout(() => {
+          if (failureModal.classList.contains('show')) {
+            failureModal.classList.remove('show');
+          }
+        }, 2000);
+      }
+    }
+
+    function closeFailureModal() {
+      failureModal.classList.remove('show');
+    }
+
+    function gameOver(reason) {
+      isGameActive = false;
+      clearInterval(timerInterval);
+      
+      // Stop alarm if game over occurs during critical question
+      stopCriticalAlarm();
+      
+      document.getElementById('failure-reason').textContent = reason;
+      document.getElementById('remaining-lives').textContent = lives;
+      document.getElementById('gameover-score').textContent = score;
+      document.getElementById('game-over-section').style.display = 'block';
+      document.getElementById('continue-btn').style.display = 'none';
+      failureModal.classList.add('show');
+    }
+
+    function gameComplete() {
+      isGameActive = false;
+      clearInterval(timerInterval);
+      
+      // Stop alarm if game completes during critical question
+      stopCriticalAlarm();
+      
+      const completionBonus = 150;
+      score += completionBonus;
+      phase3Score += completionBonus;
+      saveGameState();
+      
+      document.getElementById('final-score').textContent = score;
+      document.getElementById('final-time').textContent = 180 - timeLeft;
+      document.getElementById('phase3-score').textContent = phase3Score;
+      successModal.classList.add('show');
+      
+      if (audioInitiated) {
+        rebootSound.currentTime = 0;
+        rebootSound.play().catch(err => console.log("Failed to play sound"));
+      }
+    }
+
+    function restartGame() {
+      successModal.classList.remove('show');
+      failureModal.classList.remove('show');
+      criticalSuccessModal.classList.remove('show');
+      
+      // Stop any existing alarm
+      stopCriticalAlarm();
+      
+      currentQuestion = 0;
+      phase3Score = 0;
+      isGameActive = true;
+      
+      // Reselect questions (including new random critical ones)
+      selectQuestions();
+      loadGameState();
+      
+      renderQuestion();
+      startTimer();
+    }
+
+    muteBtn.addEventListener('click', () => {
+      initAudio();
+      const isMuted = !backgroundMusic.muted;
+      backgroundMusic.muted = isMuted;
+      wrongSound.muted = isMuted;
+      rebootSound.muted = isMuted;
+      criticalSound.muted = isMuted;
+      successSound.muted = isMuted;
+      criticalAlarmSound.muted = isMuted; // Mute alarm as well
+      muteBtn.classList.toggle('muted');
+    });
+
+    document.addEventListener('click', () => {
+      initAudio();
+      if (!timerInterval) {
+        startTimer();
+      }
+    }, { once: true });
+
+    window.onload = () => {
+      // Select questions including 3 random critical ones, placed consecutively
+      selectQuestions();
+      loadGameState();
+      renderQuestion();
+    };
+  </script>
+</body>
+</html>
